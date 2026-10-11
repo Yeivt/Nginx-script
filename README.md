@@ -1,6 +1,6 @@
 # Reportes de recomendaciones de NGINX One
 
-Script Python 3.9+ sin dependencias externas. Consulta **exclusivamente el namespace `desarrollo`**, obtiene las recomendaciones existentes de NGINX One y genera un HTML por VM, agrupado por archivo y categoría. También permite TXT.
+Script Python 3.9+ sin dependencias externas. Consulta **exclusivamente el namespace configurado en `NAMESPACE` (por defecto `desarrollo`)**, obtiene las recomendaciones existentes de NGINX One y genera un HTML por VM, agrupado por archivo y categoría. También permite TXT.
 
 Solo realiza estas consultas GET:
 
@@ -13,7 +13,19 @@ El cliente tiene una lista cerrada de rutas, no sigue redirecciones y verifica T
 
 ## Ejecutar
 
-En Linux/macOS, desde el directorio del repositorio:
+Editar el bloque al inicio de `nginx_one_report.py` en tu copia local:
+
+```python
+TENANT_URL = "https://redlink.console.ves.volterra.io"
+NAMESPACE = "desarrollo"
+
+# >>>>> PEGA TU API TOKEN AQUÍ DENTRO DE LAS COMILLAS <<<<<
+API_TOKEN = "aca va el token de apitoken"
+```
+
+Reemplazar el texto de ejemplo por el token y ejecutar `python3 nginx_one_report.py`. Se consulta un solo namespace, el indicado en `NAMESPACE`. Mantenerlo en `desarrollo` para el alcance solicitado. No subir el archivo con un token real a Git.
+
+Alternativamente, dejar `API_TOKEN` con el texto de ejemplo y usar variables de entorno. En Linux/macOS, desde el directorio del repositorio:
 
 ```bash
 export NGINX_ONE_TENANT_URL='https://redlink.console.ves.volterra.io'
@@ -24,7 +36,7 @@ python3 nginx_one_report.py
 unset NGINX_ONE_API_TOKEN
 ```
 
-Se usa `Authorization: APIToken …`, como en el script original, para el tenant F5 indicado. El token se recibe exclusivamente desde `NGINX_ONE_API_TOKEN`: no pegarlo en el código, en argumentos de comandos ni en Git. Reutilizar un mecanismo seguro de inyección de credenciales si ya existe.
+Se usa `Authorization: APIToken …`, como en el script original, para el tenant F5 indicado. Un token editado en `API_TOKEN` tiene prioridad; si está vacío o conserva el texto de ejemplo, se usa `NGINX_ONE_API_TOKEN`. Para el tenant, la prioridad es `--tenant-url`, `NGINX_ONE_TENANT_URL` y finalmente `TENANT_URL`. Reutilizar un mecanismo seguro de inyección de credenciales si ya existe.
 
 Opciones:
 

@@ -15,7 +15,13 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import HTTPSHandler, HTTPRedirectHandler, Request, build_opener
 
+# CONFIGURACIÓN PRINCIPAL: editar estos valores en tu copia local.
+TENANT_URL = "https://redlink.console.ves.volterra.io"
 NAMESPACE = "desarrollo"
+
+# >>>>> PEGA TU API TOKEN AQUÍ DENTRO DE LAS COMILLAS <<<<<
+API_TOKEN = "aca va el token de apitoken"
+
 CATEGORIES = {
     "best_practice": "Mejores prácticas",
     "optimization": "Optimización",
@@ -40,8 +46,10 @@ class ReadOnlyClient:
                 or parsed.password or parsed.path not in ("", "/")
                 or parsed.query or parsed.fragment):
             raise ReportError("El tenant debe ser un origen HTTPS sin ruta, usuario ni parámetros.")
-        if not token or any(c.isspace() for c in token):
-            raise ReportError("NGINX_ONE_API_TOKEN debe contener un token, sin espacios.")
+        if not isinstance(NAMESPACE, str) or not re.fullmatch(r"[A-Za-z0-9_-]+", NAMESPACE):
+            raise ReportError("NAMESPACE debe ser un nombre válido, sin rutas ni parámetros.")
+        if not token or token == "aca va el token de apitoken" or any(c.isspace() for c in token):
+            raise ReportError("Completa API_TOKEN o NGINX_ONE_API_TOKEN con un token válido, sin espacios.")
         self.base = tenant_url.rstrip("/") + "/api/nginx/one/namespaces/" + NAMESPACE
         self.token = token
         self.timeout = timeout
@@ -166,7 +174,7 @@ def collect(client):
 def report_text(records, generated):
     hostnames = sorted({str(r["instance"].get("hostname") or "Sin hostname") for r in records})
     lines = ["RECOMENDACIONES DE NGINX ONE", "VM: " + ", ".join(hostnames),
-             "Namespace: desarrollo", "Generado (UTC): " + generated,
+             "Namespace: " + NAMESPACE, "Generado (UTC): " + generated,
              "Origen: GET config-report. Consultas de lectura; ninguna corrección aplicada.",
              "Los comentarios se conservan tal como los devuelve la plataforma.",
              "Las ubicaciones son archivos/directivas; no se infiere la relación archivo-servicio.", ""]
@@ -256,8 +264,8 @@ def write_reports(groups, output, file_format, save_json=False):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--tenant-url", default=os.environ.get("NGINX_ONE_TENANT_URL"),
-                        help="Origen HTTPS del tenant, o NGINX_ONE_TENANT_URL.")
+    parser.add_argument("--tenant-url", default=os.environ.get("NGINX_ONE_TENANT_URL") or TENANT_URL,
+                        help="Origen HTTPS del tenant; por defecto NGINX_ONE_TENANT_URL o TENANT_URL.")
     parser.add_argument("--output", type=Path, default=Path("reportes"))
     parser.add_argument("--format", choices=("html", "txt"), default="html")
     parser.add_argument("--save-json", action="store_true", help="Agrega la respuesta original por VM.")
@@ -267,10 +275,11 @@ def main(argv=None):
     try:
         if not args.tenant_url:
             raise ReportError("Falta --tenant-url o NGINX_ONE_TENANT_URL.")
-        client = ReadOnlyClient(args.tenant_url, os.environ.get("NGINX_ONE_API_TOKEN"), args.ca_bundle)
+        token = API_TOKEN if API_TOKEN and API_TOKEN != "aca va el token de apitoken" else os.environ.get("NGINX_ONE_API_TOKEN")
+        client = ReadOnlyClient(args.tenant_url, token, args.ca_bundle)
         groups, failed = collect(client)
         if not groups:
-            print("La API devolvió cero instancias en desarrollo. No se generaron archivos.")
+            print(f"La API devolvió cero instancias en {NAMESPACE}. No se generaron archivos.")
             return 0
         run_dir = write_reports(groups, args.output, args.format, args.save_json)
         print(f"Generados {len(groups)} informes por VM en {run_dir}")
