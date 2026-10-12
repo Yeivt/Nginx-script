@@ -1,0 +1,35 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Recomendaciones NGINX One</title><style>body{font:16px system-ui;margin:2rem auto;padding:0 1rem;max-width:1050px;color:#17202a;line-height:1.5}h1{font-size:1.8rem}h2{border-bottom:2px solid #19736a;padding-top:1rem}.file{background:#e8f3f0;padding:.7rem;border-left:4px solid #19736a;overflow-wrap:anywhere}.summary{color:#19736a}h4{margin-bottom:.4rem;font-size:1.1rem}p{white-space:pre-wrap;overflow-wrap:anywhere;margin:.3rem 0}.finding{font-weight:bold;margin-top:1rem}.detail{padding-left:1rem}@media print{body{margin:0;font-size:11pt}h2,h3,h4{break-after:avoid}.finding{break-after:avoid}}</style><body><h1>RECOMENDACIONES DE NGINX ONE</h1>
+<p class="detail">VM: LNK2843</p>
+<p class="detail">Namespace: desarrollo</p>
+<p class="detail">Generado (UTC): EJEMPLO CON DATOS FICTICIOS</p>
+<p class="detail">Los comentarios originales se muestran tal cual los devuelve NGINX One; las traducciones locales se acompañan del original.</p>
+<p class="detail">Las ubicaciones de archivos se toman según las directivas informadas por NGINX One.</p>
+<p class="detail">Consultas de lectura; ninguna corrección aplicada.</p>
+<h2>INSTANCIA: inst_ejemplo_ficticio</h2>
+<p class="detail">Hostname: LNK2843</p>
+<p class="detail">Versión NGINX: 1.29.1</p>
+<p class="detail">Último reporte del agente: Ejemplo ficticio, sin consulta al tenant</p>
+<p class="detail">Estado de consulta: Consulta completada para esta instancia (SIMULACIÓN)</p>
+<h3 class="summary">RESUMEN GENERAL DE LA INSTANCIA</h3>
+<p class="detail">Mejores prácticas: 1 (contador informado por NGINX One)</p>
+<p class="detail">Optimización: 0 (contador informado por NGINX One)</p>
+<p class="detail">Seguridad: 0 (contador informado por NGINX One)</p>
+<p class="detail">Otras categorías: 0 (contador informado por NGINX One)</p>
+<p class="detail">Detalle recuperado: 1 reglas y 1 ubicaciones.</p>
+<p class="detail">Una regla puede tener varias ubicaciones; los contadores del inventario y el análisis pueden actualizarse en momentos distintos.</p>
+<h3 class="file">ARCHIVO: /etc/nginx/conf.d/VS_abm-3.conf</h3>
+<h4>Mejores prácticas</h4>
+<p class="detail">Se encontró 1 recomendación para /etc/nginx/conf.d/VS_abm-3.conf (una por ubicación señalada).</p>
+<p class="finding">1. Mejores prácticas — Advertencia en la línea 2</p>
+<p class="detail">Qué señala NGINX One: El parámetro default_server no está configurado para la directiva listen</p>
+<p class="detail">Directiva a revisar: listen</p>
+<p class="detail">Regla de NGINX One: default_server_not_set</p>
+<p class="detail">Comentario original: default_server parameter is not set for the listen directive</p>
+<p class="detail">Orientación del script: revisar qué bloque server debe ser el predeterminado y, si corresponde, añadir default_server a su directiva listen. No añadirlo a todos los vhosts: debe ser único para cada combinación de dirección y puerto.</p>
+<p class="detail">Documentación de NGINX One: https://nginx.org/en/docs/http/ngx_http_core_module.html#listen</p>
+<h4>Optimización</h4>
+<p class="detail">NGINX One no reporta cambios de optimización para este archivo.</p>
+<h4>Seguridad</h4>
+<p class="detail">NGINX One no reporta cambios de seguridad para este archivo.</p>
+<h4>Otras categorías</h4>
+<p class="detail">NGINX One no reporta cambios adicionales para este archivo.</p></body></html>

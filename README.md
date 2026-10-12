@@ -1,5 +1,31 @@
 # Reportes de recomendaciones de NGINX One
 
+## Nueva versión: resumen y detalle por línea
+
+`nginx_one_report_v2.py` es un script autónomo basado en el anterior. Conserva su cliente de lectura, configuración editable, paginación, TLS, agrupación por VM, formatos HTML/TXT y JSON opcional. El script anterior sigue disponible.
+
+En Windows, descargar `nginx_one_report_v2.py`, editar su bloque `TENANT_URL`, `NAMESPACE` y `API_TOKEN`, y ejecutar:
+
+```bat
+python C:\nginx\nginx_one_report_v2.py --output C:\nginx\reportes
+```
+
+La versión nueva agrega:
+
+- Resumen por instancia de mejores prácticas, optimización, seguridad y otras categorías. Usa los contadores `recommendations[].count` del inventario de NGINX One cuando están disponibles; no presupone que el número de reglas sea el contador de la consola. Si falta un contador, muestra el número de ubicaciones calculadas desde `config-report`, indicando expresamente esa fuente. Los dos endpoints pueden actualizarse en momentos diferentes.
+- Cantidad de recomendaciones por archivo y categoría: una por ubicación señalada, sin duplicar ubicaciones idénticas de una misma regla. Conserva todas las líneas de una regla que afecta a varias ubicaciones.
+- Resumen legible de severidad y línea, seguido del comentario de esa ubicación, la directiva que debe revisarse, el identificador de la regla y su documentación. Si existe un comentario general diferente, también se conserva.
+- Mensajes de categorías vacías del tipo «NGINX One no reporta cambios de seguridad para este archivo». Son ausencia de hallazgos devueltos para ese archivo, no una certificación de que un servicio completo no requiere cambios.
+- HTML con títulos, archivos resaltados y recomendaciones destacadas; TXT con el mismo contenido.
+
+La traducción es local y limitada al diccionario `MESSAGE_TRANSLATIONS` del script: incluye el mensaje `default_server parameter is not set for the listen directive`. Siempre muestra el original cuando se traduce. Los demás textos conservan el idioma de la API; se pueden agregar traducciones exactas al diccionario. No se envía información a servicios externos de traducción.
+
+Para el ejemplo conocido de `default_server_not_set`, aparece una orientación del script para revisar el servidor predeterminado, explícitamente separada del comentario de NGINX One. No se inventa una solución específica para otras reglas: se muestra el comentario y la documentación que devuelve la plataforma. Ninguna sugerencia se aplica automáticamente.
+
+Ver [reporte de ejemplo con datos ficticios](examples/reporte_ejemplo_v2.html). Las pruebas de esta versión cubren el contador de ejemplo `118`, la diferencia entre reglas y ubicaciones, categorías sin datos, traducción y texto original, HTML escapado y una ejecución completa simulada que genera un archivo por VM. La nueva salida no se ha consultado contra el tenant real en este entorno.
+
+## Versión original
+
 Script Python 3.9+ sin dependencias externas. Consulta **exclusivamente el namespace configurado en `NAMESPACE` (por defecto `desarrollo`)**, obtiene las recomendaciones existentes de NGINX One y genera un HTML por VM, agrupado por archivo y categoría. También permite TXT.
 
 Solo realiza estas consultas GET:
