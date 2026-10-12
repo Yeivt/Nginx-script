@@ -1,5 +1,39 @@
 # Reportes de recomendaciones de NGINX One
 
+## Salud HTTP y upstreams desde NGINX One
+
+`nginx_one_health.py` es autónomo, Python 3.9+ sin paquetes adicionales. Conservar `NAMESPACE = "desarrollo"` y completar el bloque editable `TENANT_URL` y `API_TOKEN`, o reutilizar las variables de entorno de los otros scripts. Solo consulta NGINX One: GET de inventario y POST al endpoint documentado de consulta de métricas. No usa SSH ni modifica la instancia, sus vhosts, Lua, logs, agente o config sync groups.
+
+En Windows:
+
+```bat
+python C:\nginx\nginx_one_health.py --output C:\nginx\reportes_salud
+python C:\nginx\nginx_one_health.py --instance-id inst_ID_DE_LA_LISTA --output C:\nginx\reportes_salud
+python C:\nginx\nginx_one_health.py --all --output C:\nginx\reportes_salud --save-json
+python C:\nginx\nginx_one_health.py --list-only
+```
+
+Sin selector, muestra el inventario y permite elegir una instancia (`0` para salir). Cada ejecución crea una carpeta nueva y un HTML por **instancia**, con hostname e ID en el nombre. Si una VM tiene varias instancias, conserva informes separados. `--all` recorre el namespace; son 15 consultas de métricas por instancia, realizadas secuencialmente. JSON es opcional y no exporta claves de registro del agente. El bloque `SERVICE_MAP` permite registrar asociaciones explícitas entre servicios, zonas, upstreams, archivos e identificación de logs; incluye el ejemplo `fraudprevention` aportado por el usuario. Solo muestra una asociación si existe telemetría de alguna de sus zonas/upstreams.
+
+### Qué detecta
+
+- Solicitudes HTTP, respuestas **4xx y 5xx**, a nivel de instancia y, cuando existan, por `server_zone` y `location_zone`. Usa `rate` de contadores, no suma contadores acumulados como si fueran errores nuevos. Presenta solicitudes/segundo y errores/segundo del último intervalo disponible. Las dos dimensiones se muestran por separado: no deben sumarse.
+- Porcentaje 4xx/5xx calculado solo con tasas de solicitudes y respuestas de la misma dimensión y fecha. Una serie ausente no se convierte en cero. Con tráfico cero, puntos sin fecha común o numeradores incompatibles con las solicitudes, el porcentaje se muestra como no calculable. La fecha del porcentaje puede ser anterior a las tasas más recientes y se muestra explícitamente.
+- Upstreams HTTP con peers reportados `UP`, `DOWN`, `UNHEALTHY`, `UNAVAILABLE`, `DRAINING` o `CHECKING`. Se consulta `max` por estado para el intervalo; un peer puede cambiar de estado dentro del mismo minuto, de modo que **no se suman esos estados para obtener un total**. DOWN no establece la causa ni demuestra que la VM del backend esté apagada: podría representar un estado administrado o un problema observado por NGINX.
+- Advertencias sobre ausencia de telemetría, consultas fallidas, TopX incompleto y datos con más de 180 segundos de antigüedad. No clasifica como sano un servicio sin métricas.
+
+Ventana predeterminada: últimos 15 minutos, resolución de 1 minuto. Las tablas muestran el último intervalo con valor por serie, no una comprobación activa del servicio ni una lectura instantánea. Se conservan los puntos de la ventana en el JSON opcional. Las métricas documentadas son `nginx.http.request.count`, `nginx.http.response.count` y `nginx.http.upstream.peer.count`, consultadas mediante [queryMetricsInputTopX](https://docs.nginx.com/nginx-one-console/api/api-reference-guide#operation/queryMetricsInputTopX).
+
+### Tus estructuras de servicio
+
+Para `VS_fraudprevention.conf`, se asocia `server_zone = fraudprevention`, `location_zone = /location/root/fraudprevention` y `upstream_name = fraudprevention`. Las rutas de los includes Lua/upstream y los logs de `/var/log/nginx` figuran como referencias de `SERVICE_MAP`: no se verifican ni leen en la VM, no se extraen de una configuración descargada y no se ejecuta Lua.
+
+Un vhost estático como `vs_bee3-app`, con `try_files` y sin upstream, puede no tener métricas de backend por diseño. NGINX Open Source puede carecer de telemetría por servicio y peers disponible en Plus. Si el agente solo entrega métricas globales, el script conserva la vista de instancia sin atribuir esos datos a un vhost. La existencia del archivo o de un access log por servicio no garantiza una dimensión de métricas. RHEL 8.10 o 9.x no cambia la consulta: depende de la versión/edición de NGINX y la telemetría que ya reciba NGINX One.
+
+**Limitaciones de esta API pública:** `status_range` documenta familias 4xx/5xx, no códigos exactos 400, 404, 500, 502 o 504. El catálogo de `nginx.http.upstream.peer.count` distingue upstream y estado, pero no dirección IP del peer afectado: el informe identifica el upstream con peers problemáticos, no afirma cuál backend concreto está caído. Tampoco hay un endpoint documentado de lectura de access/error logs en la referencia consultada; los paths `/logs/nginx/...` y `/var/log/nginx/...` son referencias para una investigación posterior. No se inventan errores de logs ni se accede a certificados, claves o passwords.
+
+Salidas: `0` consultas completas o listado/cancelación; `1` fallo de inventario/configuración/escritura; `2` informes generados con telemetría ausente, parcial, desactualizada o consultas de métricas fallidas; `130` interrupción. La ausencia de una métrica opcional puede producir `2` aun cuando las otras tablas sean útiles. Las pruebas son simuladas; no se ha consultado el tenant real con este nuevo script. Ver [ejemplo con datos ficticios](examples/reporte_ejemplo_salud.html).
+
 ## Uso de disco desde NGINX One
 
 `nginx_one_disk.py` es un script autónomo Python 3.9+, sin dependencias externas. Editar su bloque `TENANT_URL`, `NAMESPACE = "desarrollo"` y `API_TOKEN`, igual que en los scripts de recomendaciones. Mantener el token real en tu copia local o usar `NGINX_ONE_API_TOKEN`; no subirlo a Git.

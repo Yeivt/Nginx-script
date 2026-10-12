@@ -1,0 +1,60 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>Salud de servicios — NGINX One</title>
+<style>body{font:15px system-ui;margin:2rem;color:#17202a}table{border-collapse:collapse;width:100%;margin-bottom:2rem}td,th{border:1px solid #ccd4da;padding:.6rem;text-align:left;overflow-wrap:anywhere}th{background:#e8f3f0}.notice{background:#fff3cd;padding:1rem}small{display:block}h2{margin-top:2rem}@media print{body{margin:0}h2{break-after:avoid}}</style><body>
+<h1>Salud de servicios — LNK2843 — EJEMPLO FICTICIO</h1>
+<p>Namespace: desarrollo · Instancia: inst_ejemplo_ficticio</p>
+<p>Generado UTC: 2026-10-12T12:00:00+00:00 · Estado del agente/instancia: online</p>
+<p>SO informado: RHEL 9.8 · Último reporte del agente: No informado</p>
+<p class="notice">Familias HTTP 4xx/5xx, no códigos exactos 400/500. Ventana de 15 minutos. Tasas por segundo del último intervalo disponible de 1m; no son conteos absolutos. Las zonas de servidor y de ubicación se muestran por separado y no deben sumarse. Sin datos no significa cero ni servicio sano.</p>
+<h2>Resumen de la instancia</h2>
+<table><tr><th>Zona / instancia</th><th>Solicitudes/s</th><th>4xx/s</th><th>5xx/s</th><th>% 4xx / % 5xx</th><th>Observaciones</th></tr>
+<tr><td>inst_ejemplo_ficticio</td>
+<td>SIN DATOS<small>Sin fecha</small></td>
+<td>SIN DATOS<small>Sin fecha</small></td>
+<td>SIN DATOS<small>Sin fecha</small></td>
+<td>No calculable<small>Sin intervalo común</small></td><td>requests: SIN DATOS; 4xx: SIN DATOS; 5xx: SIN DATOS</td></tr>
+<tr><td>inst_test</td>
+<td>100.000<small>2026-10-12T11:59:00+00:00</small></td>
+<td>4.000<small>2026-10-12T11:59:00+00:00</small></td>
+<td>2.000<small>2026-10-12T11:59:00+00:00</small></td>
+<td>4.00 % / 2.00 %<small>2026-10-12T11:59:00+00:00</small></td><td>ERRORES 4xx observados en el último intervalo; ERRORES 5xx observados en el último intervalo</td></tr>
+</table>
+<h2>Servicios por server_zone</h2>
+<table><tr><th>Zona / instancia</th><th>Solicitudes/s</th><th>4xx/s</th><th>5xx/s</th><th>% 4xx / % 5xx</th><th>Observaciones</th></tr>
+<tr><td>fraudprevention</td>
+<td>100.000<small>2026-10-12T11:59:00+00:00</small></td>
+<td>4.000<small>2026-10-12T11:59:00+00:00</small></td>
+<td>2.000<small>2026-10-12T11:59:00+00:00</small></td>
+<td>4.00 % / 2.00 %<small>2026-10-12T11:59:00+00:00</small></td><td>ERRORES 4xx observados en el último intervalo; ERRORES 5xx observados en el último intervalo</td></tr>
+</table>
+<h2>Ubicaciones por location_zone</h2>
+<table><tr><th>Zona / instancia</th><th>Solicitudes/s</th><th>4xx/s</th><th>5xx/s</th><th>% 4xx / % 5xx</th><th>Observaciones</th></tr>
+<tr><td>/location/root/fraudprevention</td>
+<td>100.000<small>2026-10-12T11:59:00+00:00</small></td>
+<td>4.000<small>2026-10-12T11:59:00+00:00</small></td>
+<td>2.000<small>2026-10-12T11:59:00+00:00</small></td>
+<td>4.00 % / 2.00 %<small>2026-10-12T11:59:00+00:00</small></td><td>ERRORES 4xx observados en el último intervalo; ERRORES 5xx observados en el último intervalo</td></tr>
+</table>
+<h2>Upstreams y peers</h2><p>Máximo de peers por estado en cada intervalo de 1m. No sumar estados: un peer puede cambiar de estado dentro del intervalo. DOWN es el estado reportado por NGINX; no demuestra por sí solo que la VM del backend esté apagada. Esta métrica no permite identificar la dirección IP del peer afectado.</p>
+<table><tr><th>Upstream</th><th>UP</th><th>DOWN</th><th>UNHEALTHY</th><th>UNAVAILABLE</th><th>DRAINING</th><th>CHECKING</th><th>Observaciones</th></tr>
+<tr><td>fraudprevention</td>
+<td>1.000<small>2026-10-12T11:59:00+00:00</small></td>
+<td>1.000<small>2026-10-12T11:59:00+00:00</small></td>
+<td>0.000<small>2026-10-12T11:59:00+00:00</small></td>
+<td>0.000<small>2026-10-12T11:59:00+00:00</small></td>
+<td>0.000<small>2026-10-12T11:59:00+00:00</small></td>
+<td>0.000<small>2026-10-12T11:59:00+00:00</small></td>
+<td>1 peer(s) reportados DOWN en el intervalo</td></tr>
+</table>
+<h2>Asociaciones de servicios y logs</h2><p>Asociaciones explícitas del bloque SERVICE_MAP; no se deducen del nombre del archivo. Los paths son referencias aportadas por el operador, no comprobados en la VM. No se leen logs ni archivos de configuración, certificados, claves o passwords. La API pública consultada no documenta acceso a logs de acceso/error.</p>
+<h3>fraudprevention</h3><ul>
+<li>server_zone: fraudprevention</li>
+<li>location_zone: /location/root/fraudprevention</li>
+<li>upstreams: fraudprevention</li>
+<li>vhost: /etc/nginx/conf.d/VS_fraudprevention.conf</li>
+<li>includes: /etc/nginx/conf.d/lua/lua_fraudprevention.conf, /etc/nginx/conf.d/upstreams/upstream_fraudprevention.conf</li>
+<li>access_log: /var/log/nginx/access_fraudprevention.log</li>
+<li>error_log: /var/log/nginx/error_fraudprevention.log</li>
+</ul>
+<h2>Disponibilidad de datos</h2>
+<p>EJEMPLO CON DATOS FICTICIOS. No se consultó la VM ni el tenant; los errores y estados DOWN son simulados.</p>
+<p>RHEL 8/9: el script consulta la consola HTTPS, no ejecuta comandos en el sistema operativo ni activa instrumentación. Un 4xx suele corresponder a una solicitud rechazada; un 5xx no identifica por sí solo la causa ni un backend caído.</p></body></html>
