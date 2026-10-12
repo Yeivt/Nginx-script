@@ -1,5 +1,42 @@
 # Reportes de recomendaciones de NGINX One
 
+## Uso de disco desde NGINX One
+
+`nginx_one_disk.py` es un script autónomo Python 3.9+, sin dependencias externas. Editar su bloque `TENANT_URL`, `NAMESPACE = "desarrollo"` y `API_TOKEN`, igual que en los scripts de recomendaciones. Mantener el token real en tu copia local o usar `NGINX_ONE_API_TOKEN`; no subirlo a Git.
+
+En Windows:
+
+```bat
+python C:\nginx\nginx_one_disk.py
+```
+
+Lista todas las instancias del namespace configurado, muestra hostname, ID y estado, y permite seleccionar un número. `0` sale sin consultar métricas. La tabla resultante muestra uso porcentual por punto de montaje, fecha UTC y estado de disponibilidad de cada medición. No usa SSH, comandos remotos ni acceso directo a las VMs.
+
+Opciones:
+
+```bat
+python C:\nginx\nginx_one_disk.py --list-only
+python C:\nginx\nginx_one_disk.py --instance-id inst_ID_DE_LA_LISTA
+python C:\nginx\nginx_one_disk.py --csv C:\nginx\reportes\disco.csv
+```
+
+`--csv` guarda también una tabla local para Excel, sin sobrescribir archivos existentes. Las opciones `--tenant-url` y `--ca-bundle` conservan el mismo funcionamiento que en los otros scripts. Un ID proporcionado por argumento debe encontrarse primero en el inventario del namespace: no se consulta un ID arbitrario.
+
+### Consultas y significado del porcentaje
+
+- **GET** `/api/nginx/one/namespaces/desarrollo/instances`: inventario paginado.
+- **POST** `/api/nginx/one/namespaces/desarrollo/monitor/metrics_query_topx`: consulta documentada de métricas, filtrada por el ID seleccionado y `state = in_use`, agrupada por `mount_point`.
+
+La API oficial usa POST para consultar métricas: este endpoint ejecuta una consulta y no despliega configuraciones ni modifica las VMs. El cliente bloquea otros métodos y rutas; no incluye PATCH, PUT o DELETE. Los scripts de recomendaciones siguen utilizando únicamente GET.
+
+Se solicita `system.filesystem.usage`, que la documentación describe como porcentaje y reemplaza las métricas antiguas `system.disk.*`. Se usa el valor directamente en escala 0–100; no se multiplica automáticamente por 100 ni se infiere la escala según su magnitud. Referencia: [queryMetricsInputTopX](https://docs.nginx.com/nginx-one-console/api/api-reference-guide#operation/queryMetricsInputTopX) y [OpenAPI oficial](https://github.com/nginx/documentation/blob/main/static/nginx-one-console/api/one.json).
+
+Se consultan los últimos 5 minutos con intervalos de 30 segundos y agregación `avg`. Para cada montaje se presenta el **último intervalo con valor disponible**, que es un promedio de ese intervalo, no una medición instantánea de `df`. El reporte conserva la hora y marca como desactualizado un dato con más de 120 segundos. Un hueco `null` no se convierte en cero. Si falta telemetría, muestra «SIN DATOS» o un aviso: no significa que el disco esté vacío. Se necesita que NGINX One ya reciba esas métricas del agente y que la credencial tenga permiso para consultarlas; el script no modifica el agente para activarlas.
+
+Se descarta el total sintético `all`. Si TopX devuelve `other`, se informa que el listado está incompleto; no se presenta como un montaje. Las rutas que no aparecen en la telemetría no se inventan. Se mide la ocupación de los sistemas de archivos montados, no cuánto consume cada directorio. Varias instancias pueden representar la misma VM: seleccionar una de ellas por su ID.
+
+Salidas: `0` consulta completa, listado o cancelación con `0`; `1` error de API/configuración/archivo; `2` datos ausentes, desactualizados o listado incompleto; `130` interrupción por teclado. Las pruebas usan respuestas simuladas del esquema oficial. La conexión al tenant real no se ha probado en este entorno.
+
 ## Nueva versión: resumen y detalle por línea
 
 `nginx_one_report_v2.py` es un script autónomo basado en el anterior. Conserva su cliente de lectura, configuración editable, paginación, TLS, agrupación por VM, formatos HTML/TXT y JSON opcional. El script anterior sigue disponible.
