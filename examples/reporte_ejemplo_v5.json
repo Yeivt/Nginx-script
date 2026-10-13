@@ -1,0 +1,37 @@
+{
+  "generado_utc": "2026-10-13T21:23:39.759796+00:00",
+  "estado": "reporte completado",
+  "ambiente": "desarrollo",
+  "server": "LNK2843",
+  "archivo": {
+    "tipo": "vhost",
+    "nombre": "VS_abm-3.conf",
+    "ruta": "/etc/nginx/conf.d/VS_abm-3.conf"
+  },
+  "total_recomendaciones_archivo": 1,
+  "resumen_archivo": {
+    "best_practice": 1,
+    "optimization": 0,
+    "security": 0,
+    "other": 0
+  },
+  "recomendaciones": {
+    "best_practice": [
+      {
+        "regla": "default_server_not_set",
+        "categoria_original": "best_practice",
+        "severidad": "warning",
+        "severidad_es": "Advertencia",
+        "archivo": "/etc/nginx/conf.d/VS_abm-3.conf",
+        "linea": 2,
+        "directiva": "listen",
+        "comentario_original": "default_server parameter is not set for the listen directive",
+        "comentario_es": "El parámetro default_server no está configurado para la directiva listen",
+        "contexto_original": "default_server parameter is not set for the listen directive"
+      }
+    ],
+    "optimization": [],
+    "security": [],
+    "other": []
+  }
+}

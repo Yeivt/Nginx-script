@@ -1,5 +1,32 @@
 # Reportes de recomendaciones de NGINX One
 
+## V5: reporte JSON simplificado
+
+`nginx_one_report_v5.py` conserva la selección ambiente → servidor → archivo, los cuatro namespaces y las consultas GET de v4. Genera el formato solicitado con estos campos, en este orden:
+
+```text
+generado_utc
+estado
+ambiente
+server
+archivo { tipo, nombre, ruta }
+total_recomendaciones_archivo
+resumen_archivo { best_practice, optimization, security, other }
+recomendaciones { best_practice, optimization, security, other }
+```
+
+Cada recomendación mantiene `regla`, `categoria_original`, `severidad`, `severidad_es`, `archivo`, `linea`, `directiva`, `comentario_original`, `comentario_es` y `contexto_original`. Se quitan del **reporte final** `schema_version`, `instance_id`, versión NGINX, última fecha del agente, versión de catálogo, avisos y documentación. Las listas de servidores y archivos mantienen sus metadatos e IDs para que el framework pueda seleccionar y desambiguar recursos.
+
+```bat
+python C:\nginx\nginx_one_report_v5.py --ambiente desarrollo --server LNK2843 --vhost VS_abm-3.conf --output C:\nginx\reportes\vhost.json
+```
+
+Los bloques editables, argumentos, menús y funciones de integración funcionan como en v4, importando ahora `nginx_one_report_v5`. La salida es JSON válido, sin comas finales. Ver [ejemplo de salida v5 con datos ficticios](examples/reporte_ejemplo_v5.json).
+
+`estado` usa **`reporte completado`** o **`reporte pendiente`**. En pendientes, el total y los contadores son `null` y la CLI devuelve `2`. Si falla la selección o consulta, la CLI devuelve `{"estado": "error", "error": "…"}` y código `1`; no presenta un reporte completado vacío. Los conteos siguen correspondiendo únicamente a las ubicaciones del archivo seleccionado. Los hallazgos sin archivo informado no se atribuyen a ese archivo. Las traducciones locales siguen limitadas al diccionario existente; los textos desconocidos conservan el idioma original.
+
+V4 sigue disponible con su salida detallada. La validación de v5 usa respuestas simuladas; no se consultó el tenant real con esta versión.
+
 ## V4: ambiente → servidor → archivo, con salida JSON
 
 `nginx_one_report_v4.py` es la versión nueva solicitada, basada en la consulta y validación de v2. Es autónomo (Python 3.9+, sin dependencias externas). Mantiene v2 disponible y usa exclusivamente GET. Permite `default`, `desarrollo`, `homologacion` y `produccion`, consultando **un único ambiente por cliente**; no mezcla inventarios. Las opciones locales de ambiente no garantizan acceso: el token debe estar autorizado en el namespace elegido.
