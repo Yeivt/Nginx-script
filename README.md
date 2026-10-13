@@ -1,5 +1,69 @@
 # Reportes de recomendaciones de NGINX One
 
+## V4: ambiente → servidor → archivo, con salida JSON
+
+`nginx_one_report_v4.py` es la versión nueva solicitada, basada en la consulta y validación de v2. Es autónomo (Python 3.9+, sin dependencias externas). Mantiene v2 disponible y usa exclusivamente GET. Permite `default`, `desarrollo`, `homologacion` y `produccion`, consultando **un único ambiente por cliente**; no mezcla inventarios. Las opciones locales de ambiente no garantizan acceso: el token debe estar autorizado en el namespace elegido.
+
+Su bloque editable incluye:
+
+```python
+TENANT_URL = "https://redlink.console.ves.volterra.io"
+ambiente = "produccion"
+server = ""       # "LNKXXX"
+vhost = ""        # "VS_XXXX.conf"
+lua = ""          # "lua_XXX.conf"
+upstream = ""     # "upstream_XXX.conf"
+API_TOKEN = "aca va el token de apitoken"
+```
+
+Seleccionar **uno** de `vhost`, `lua` o `upstream` para cada reporte, no los tres simultáneamente. Con selectores vacíos se muestran menús. En el menú de ambiente, Enter usa el valor editable de `ambiente`. Los argumentos de archivo tienen prioridad sobre los selectores editados. El token real se recibe de `API_TOKEN` o, si se conserva el ejemplo/vacío, de `NGINX_ONE_API_TOKEN`.
+
+### Uso desde el framework mediante CLI
+
+Cada comando devuelve un documento JSON en stdout. Los menús se escriben en stderr; para ejecución automática, proporcionar todos los selectores necesarios. Listar los cuatro ambientes no requiere token ni red.
+
+```bat
+python C:\nginx\nginx_one_report_v4.py --listar-ambientes
+python C:\nginx\nginx_one_report_v4.py --ambiente produccion --listar-servidores
+python C:\nginx\nginx_one_report_v4.py --ambiente produccion --server LNK2843 --listar-archivos
+python C:\nginx\nginx_one_report_v4.py --ambiente produccion --server LNK2843 --vhost VS_fraudprevention.conf
+python C:\nginx\nginx_one_report_v4.py --ambiente produccion --server LNK2843 --lua lua_fraudprevention.conf
+python C:\nginx\nginx_one_report_v4.py --ambiente produccion --server LNK2843 --upstream upstream_fraudprevention.conf --output C:\nginx\reportes\upstream.json
+```
+
+`--output` guarda también el mismo JSON en un archivo nuevo; no sobrescribe uno existente. `--instance-id inst_...` permite identificar exactamente la instancia si un hostname está repetido o una VM tiene varios NGINX. Usar la ruta completa recibida en el catálogo si un nombre de archivo se repite. `--tenant-url` y `--ca-bundle` mantienen TLS y configuración equivalentes a los demás scripts.
+
+### Uso como módulo Python
+
+```python
+from nginx_one_report_v4 import ReadOnlyClient, listar_ambientes
+
+opciones_ambiente = listar_ambientes()
+client = ReadOnlyClient(tenant_url, token, ambiente="produccion")
+opciones_server = client.listar_servidores()
+catalogo = client.listar_archivos("LNK2843", instance_id="inst_ID_DE_LA_LISTA")
+reporte = client.obtener_reporte(
+    "LNK2843", instance_id="inst_ID_DE_LA_LISTA",
+    vhost="/etc/nginx/conf.d/VS_fraudprevention.conf",
+)
+```
+
+Las funciones devuelven listas/diccionarios serializables a JSON; `ReportError` informa un fallo de API o selección. Crear un cliente por flujo/ambiente y renovarlo cuando se necesite refrescar inventario o catálogo: las listas se cachean en memoria durante su uso. El constructor no consulta red hasta listar/seleccionar recursos y no hace trabajo al importar el módulo.
+
+### Catálogo y reporte seleccionado
+
+GET `/instances` obtiene servidores; GET `/instances/{id}/config` obtiene el catálogo; GET `/instances/{id}/config-report` obtiene las recomendaciones. Todas las rutas se encuentran bajo `/api/nginx/one/namespaces/{ambiente}`. Un ID debe existir en el inventario del ambiente antes de consultar su configuración. El endpoint de configuración incluye contenidos; v4 **solo extrae nombres y rutas** de `configs`/`aux`: no decodifica, guarda ni exporta `contents` o `payloads`. No genera un volcado de configuración ni conecta por SSH.
+
+Clasificación del catálogo por tus convenciones: `VS_*.conf` o `vhost*.conf` son vhosts; `lua_*.conf`, `.conf` dentro de un directorio `lua` o archivos `.lua` son Lua; `upstream_*.conf` o `.conf` dentro de `upstream`/`upstreams` son upstreams. El framework recibe `{tipo, nombre, ruta}` agrupados en esas tres categorías. Archivos con otras convenciones no se clasifican automáticamente; se puede adaptar `file_type` en una tarea aparte. Los archivos sin hallazgos también se pueden seleccionar porque la lista procede de la configuración y no de las recomendaciones.
+
+El JSON del reporte incluye `schema_version: "4.0"`, ambiente, server, instance_id, archivo, fecha, estado, `resumen_archivo`, `total_recomendaciones_archivo` y recomendaciones por categoría. Cada recomendación contiene línea, directiva, regla, severidad, comentario original, traducción local si existe y documentación. Los conteos son ubicaciones únicas por regla **solo del archivo seleccionado**, no los totales generales de la consola o VM. No exporta las ubicaciones de otros archivos ni navega automáticamente a los includes relacionados.
+
+La comparación de rutas Linux distingue mayúsculas y minúsculas. Una ubicación que solo informa un nombre se asigna únicamente si el catálogo tiene una coincidencia única. Si ese nombre está repetido, el reporte falla en lugar de adivinar. Ubicaciones sin archivo no se atribuyen al archivo seleccionado. El catálogo y el análisis son consultas separadas: la API no garantiza que correspondan a un snapshot atómico; el JSON incluye la versión de catálogo y esa advertencia.
+
+HTTP 204 produce `estado: "pendiente"` y contadores `null`, no cero. Un archivo válido sin hallazgos produce `estado: "completado"` y cero, con la aclaración de que no certifica ausencia de mejoras. Los errores CLI devuelven JSON con `estado: "error"`; no se reemplazan por un reporte vacío. Códigos de salida: `0` completado/listado/cancelación de menú, `1` error, `2` análisis pendiente, `130` interrupción; errores de argumentos también usan el código `2` estándar de argparse.
+
+Ver [JSON de ejemplo con datos ficticios](examples/reporte_ejemplo_v4.json). Se validó con respuestas simuladas, sin acceso al tenant real. Las versiones previas permanecen disponibles.
+
 ## Salud HTTP y upstreams desde NGINX One
 
 `nginx_one_health.py` es autónomo, Python 3.9+ sin paquetes adicionales. Conservar `NAMESPACE = "desarrollo"` y completar el bloque editable `TENANT_URL` y `API_TOKEN`, o reutilizar las variables de entorno de los otros scripts. Solo consulta NGINX One: GET de inventario y POST al endpoint documentado de consulta de métricas. No usa SSH ni modifica la instancia, sus vhosts, Lua, logs, agente o config sync groups.

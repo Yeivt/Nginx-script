@@ -1,0 +1,47 @@
+{
+  "schema_version": "4.0",
+  "ambiente": "produccion",
+  "server": "LNK2843",
+  "instance_id": "inst_ejemplo_ficticio",
+  "archivo": {
+    "tipo": "vhost",
+    "nombre": "VS_fraudprevention.conf",
+    "ruta": "/etc/nginx/conf.d/VS_fraudprevention.conf"
+  },
+  "generado_utc": "2026-10-13T16:18:12.489791+00:00",
+  "nginx_version": null,
+  "ultimo_reporte_agente": null,
+  "config_version_catalogo": "version-test",
+  "estado": "completado",
+  "total_recomendaciones_archivo": 1,
+  "resumen_archivo": {
+    "best_practice": 1,
+    "optimization": 0,
+    "security": 0,
+    "other": 0
+  },
+  "recomendaciones": {
+    "best_practice": [
+      {
+        "regla": "default_server_not_set",
+        "categoria_original": "best_practice",
+        "severidad": "warning",
+        "severidad_es": "Advertencia",
+        "archivo": "/etc/nginx/conf.d/VS_fraudprevention.conf",
+        "linea": 2,
+        "directiva": "listen",
+        "comentario_original": "default_server parameter is not set for the listen directive",
+        "comentario_es": "El parámetro default_server no está configurado para la directiva listen",
+        "contexto_original": "default_server parameter is not set for the listen directive",
+        "documentacion": []
+      }
+    ],
+    "optimization": [],
+    "security": [],
+    "other": []
+  },
+  "avisos": [
+    "EJEMPLO CON DATOS FICTICIOS; no se consultó el tenant real.",
+    "El catálogo y config-report son consultas separadas; la API no garantiza un snapshot atómico."
+  ]
+}
