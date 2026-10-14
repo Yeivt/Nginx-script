@@ -27,6 +27,12 @@ Los bloques editables, argumentos, menús y funciones de integración funcionan 
 
 V4 sigue disponible con su salida detallada. La validación de v5 usa respuestas simuladas; no se consultó el tenant real con esta versión.
 
+### Errores de salida o certificados en v5
+
+La v5 actualizada distingue el motivo del fallo: archivo de salida existente, `--output` apuntando a una carpeta, un componente de la ruta que es archivo, permisos de escritura, CA inexistente/ilegible o PEM inválido y URL mal formada. Ya no agrupa estos casos en el mensaje genérico «Error de configuración TLS/URL o escritura local». Valida un archivo de salida existente antes de consultar la API y conserva los informes anteriores.
+
+Si el JSON de salida ya existe, elegir otro nombre, por ejemplo `--output C:\nginx\reportes\reporte_nuevo.json`, o ejecutar sin `--output` para ver la respuesta en consola. Si el error menciona CA, revisar la ruta de `--ca-bundle`, `REQUESTS_CA_BUNDLE` o `SSL_CERT_FILE` y usar un certificado PEM válido; TLS sigue verificándose.
+
 ## V4: ambiente → servidor → archivo, con salida JSON
 
 `nginx_one_report_v4.py` es la versión nueva solicitada, basada en la consulta y validación de v2. Es autónomo (Python 3.9+, sin dependencias externas). Mantiene v2 disponible y usa exclusivamente GET. Permite `default`, `desarrollo`, `homologacion` y `produccion`, consultando **un único ambiente por cliente**; no mezcla inventarios. Las opciones locales de ambiente no garantizan acceso: el token debe estar autorizado en el namespace elegido.

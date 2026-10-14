@@ -85,6 +85,53 @@ class V5Tests(unittest.TestCase):
         self.assertEqual(set(result), {"estado", "error"})
         self.assertEqual(result["estado"], "error")
 
+    def test_existing_output_reports_actual_reason_before_api_and_preserves_file(self):
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / "report.json"
+            output.write_text("informe anterior", encoding="utf-8")
+            stdout = io.StringIO()
+            with patch.object(app, "ReadOnlyClient") as constructor, patch("sys.stdout", stdout):
+                status = app.main(["--ambiente", "desarrollo", "--server", "LNK2843", "--vhost", VHOST, "--output", str(output)])
+            constructor.assert_not_called()
+            self.assertEqual(status, 1)
+            self.assertIn("ya existe", json.loads(stdout.getvalue())["error"])
+            self.assertEqual(output.read_text(), "informe anterior")
+
+    def test_output_directory_and_parent_file_are_distinguished(self):
+        with tempfile.TemporaryDirectory() as folder:
+            stdout = io.StringIO()
+            with patch("sys.stdout", stdout):
+                self.assertEqual(app.main(["--listar-ambientes", "--output", folder]), 1)
+            self.assertIn("apunta a una carpeta", json.loads(stdout.getvalue())["error"])
+            parent = Path(folder) / "parent-file"
+            parent.write_text("preservar", encoding="utf-8")
+            stdout = io.StringIO()
+            with patch("sys.stdout", stdout):
+                self.assertEqual(app.main(["--listar-ambientes", "--output", str(parent / "report.json")]), 1)
+            self.assertIn("parte de la ruta es un archivo", json.loads(stdout.getvalue())["error"])
+            self.assertEqual(parent.read_text(), "preservar")
+
+    def test_missing_or_invalid_ca_is_not_reported_as_output_collision(self):
+        with tempfile.TemporaryDirectory() as folder:
+            ca = Path(folder) / "ca.pem"
+            with self.assertRaisesRegex(app.ReportError, "No se encontró el archivo de certificados CA"):
+                app.ReadOnlyClient("https://example.console.ves.volterra.io", "placeholder", "desarrollo", str(ca))
+            ca.write_text("not-a-certificate", encoding="utf-8")
+            with self.assertRaisesRegex(app.ReportError, "PEM válido"):
+                app.ReadOnlyClient("https://example.console.ves.volterra.io", "placeholder", "desarrollo", str(ca))
+
+    def test_invalid_url_is_identified_without_request(self):
+        for url in ("https://[bad", "https://example.com:not-a-port"):
+            with self.assertRaisesRegex(app.ReportError, "URL HTTPS válida"):
+                app.ReadOnlyClient(url, "placeholder", "desarrollo")
+
+    def test_write_permission_failure_has_specific_json_message(self):
+        with tempfile.TemporaryDirectory() as folder:
+            stdout = io.StringIO()
+            with patch.object(Path, "open", side_effect=PermissionError), patch("sys.stdout", stdout):
+                self.assertEqual(app.main(["--listar-ambientes", "--output", str(Path(folder) / "report.json")]), 1)
+            self.assertIn("permisos para escribir", json.loads(stdout.getvalue())["error"])
+
 
 if __name__ == "__main__":
     unittest.main()

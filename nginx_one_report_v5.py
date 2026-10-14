@@ -55,7 +55,11 @@ class NoRedirects(HTTPRedirectHandler):
 
 class ReadOnlyClient:
     def __init__(self, tenant_url, token, ambiente, ca_bundle=None, timeout=30):
-        parsed = urlsplit(tenant_url)
+        try:
+            parsed = urlsplit(tenant_url)
+            parsed.port  # Validar el puerto antes de ejecutar consultas.
+        except (TypeError, ValueError):
+            raise ReportError("TENANT_URL/--tenant-url no contiene una URL HTTPS válida.") from None
         if (parsed.scheme != "https" or not parsed.hostname or parsed.username
                 or parsed.password or parsed.path not in ("", "/")
                 or parsed.query or parsed.fragment):
@@ -70,7 +74,14 @@ class ReadOnlyClient:
         self.base = tenant_url.rstrip("/") + "/api/nginx/one/namespaces/" + self.ambiente
         self.token = token
         self.timeout = timeout
-        context = ssl.create_default_context(cafile=ca_bundle)
+        try:
+            context = ssl.create_default_context(cafile=ca_bundle)
+        except FileNotFoundError:
+            raise ReportError("No se encontró el archivo de certificados CA. Revisar --ca-bundle, REQUESTS_CA_BUNDLE o SSL_CERT_FILE.") from None
+        except PermissionError:
+            raise ReportError("No hay permisos para leer el archivo de certificados CA indicado.") from None
+        except (ssl.SSLError, IsADirectoryError, ValueError):
+            raise ReportError("El archivo CA no es un certificado PEM válido. Revisar --ca-bundle, REQUESTS_CA_BUNDLE o SSL_CERT_FILE.") from None
         self.opener = build_opener(HTTPSHandler(context=context), NoRedirects())
 
     def get(self, path, params=""):
@@ -366,12 +377,28 @@ def choose(items, labels, title, default=None):
         print("Selección inválida.", file=sys.stderr)
 
 
+def validate_output_path(output):
+    if output.is_dir():
+        raise ReportError("--output apunta a una carpeta. Indica un archivo JSON, por ejemplo C:\\nginx\\reportes\\reporte_nuevo.json.")
+    if output.exists() or output.is_symlink():
+        raise ReportError(f"El archivo de salida ya existe: {output}. Usa otro nombre en --output o ejecuta sin --output para ver el JSON en la consola.")
+
+
 def emit_json(data, output=None):
     text = json.dumps(data, ensure_ascii=False, indent=2) + "\n"
     if output:
-        output.parent.mkdir(parents=True, exist_ok=True)
-        with output.open("x", encoding="utf-8") as stream:
-            stream.write(text)
+        validate_output_path(output)
+        try:
+            output.parent.mkdir(parents=True, exist_ok=True)
+        except FileExistsError:
+            raise ReportError("No se puede crear la carpeta de salida: una parte de la ruta es un archivo. Revisar --output.") from None
+        try:
+            with output.open("x", encoding="utf-8") as stream:
+                stream.write(text)
+        except FileExistsError:
+            raise ReportError("El archivo de salida fue creado por otra ejecución. Usa otro nombre en --output.") from None
+        except PermissionError:
+            raise ReportError("No hay permisos para escribir el archivo de salida. Elegir una carpeta con permisos de escritura en --output.") from None
     sys.stdout.write(text)
 
 
@@ -393,6 +420,8 @@ def main(argv=None):
     parser.add_argument("--ca-bundle", default=os.environ.get("REQUESTS_CA_BUNDLE") or os.environ.get("SSL_CERT_FILE"))
     args = parser.parse_args(argv)
     try:
+        if args.output:
+            validate_output_path(args.output)
         if args.listar_ambientes:
             emit_json({"ambientes": listar_ambientes()}, args.output)
             return 0
@@ -434,8 +463,14 @@ def main(argv=None):
     except ReportError as exc:
         emit_json({"estado": "error", "error": str(exc)})
         return 1
-    except (OSError, ValueError):
-        emit_json({"estado": "error", "error": "Error de configuración TLS/URL o escritura local; el archivo de salida debe ser nuevo."})
+    except PermissionError:
+        emit_json({"estado": "error", "error": "No hay permisos para crear la carpeta de salida. Revisar --output."})
+        return 1
+    except OSError as exc:
+        emit_json({"estado": "error", "error": f"Falló una operación local (código de sistema: {exc.errno}). Revisar la ruta de salida y la configuración de certificados."})
+        return 1
+    except ValueError:
+        emit_json({"estado": "error", "error": "Configuración inválida. Revisar TENANT_URL/--tenant-url y el archivo de certificados CA."})
         return 1
     except KeyboardInterrupt:
         return 130
