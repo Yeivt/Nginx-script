@@ -1,0 +1,49 @@
+---
+- name: Consultar o actualizar NGINX de a una VM
+  hosts: nginx_upgrade
+  become: true
+  gather_facts: false
+  serial: 1
+  any_errors_fatal: true
+  vars:
+    nginx_scripts:
+      NginxPlus: actualizar_nginx_plus.py
+      NginxOpen: actualizar_nginx_open.py
+    nginx_remote_dir: /var/tmp/nginx-upgrade
+  tasks:
+    - name: Validar variables del framework
+      ansible.builtin.assert:
+        that:
+          - version is defined
+          - version in nginx_scripts
+          - server is defined
+          - server | length > 0
+          - not ansible_check_mode
+        fail_msg: Usar version, server y el modo plan por defecto, sin --check.
+
+    - name: Crear directorio privado de ejecucion
+      ansible.builtin.file:
+        path: "{{ nginx_remote_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0700'
+
+    - name: Copiar el script correspondiente
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/{{ nginx_scripts[version] }}"
+        dest: "{{ nginx_remote_dir }}/{{ nginx_scripts[version] }}"
+        owner: root
+        group: root
+        mode: '0700'
+
+    - name: Ejecutar plan o upgrade local y obtener JSON
+      ansible.builtin.command:
+        argv: "{{ [nginx_python | default('/usr/bin/python3'), nginx_remote_dir ~ '/' ~ nginx_scripts[version], '--version', version, '--server', server] + (['--target', nginx_target] if nginx_target | default('') | length > 0 else []) + (['--repo', nginx_repo] if nginx_repo | default('') | length > 0 else []) + (['--apply'] if nginx_apply | default(false) | bool else []) }}"
+      register: nginx_result
+      changed_when: (nginx_result.stdout | from_json).changed | default(false)
+      failed_when: nginx_result.rc != 0
+
+    - name: Mostrar el resultado del script
+      ansible.builtin.debug:
+        msg: "{{ nginx_result.stdout | from_json }}"
